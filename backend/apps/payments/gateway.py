@@ -84,6 +84,48 @@ class FakeGateway(PaymentGateway):
             return len(self.charges)
 
 
+class SeededRandomGateway(PaymentGateway):
+    """Deterministic, seeded failure injector for the portfolio simulation.
+
+    First attempts fail with ``first_failure_rate``; retries fail with
+    ``retry_failure_rate`` so a measurable share of dunning recovers.
+    """
+
+    name = "seeded-random"
+
+    def __init__(
+        self,
+        seed: int = 42,
+        first_failure_rate: float = 0.10,
+        retry_failure_rate: float = 0.35,
+    ):
+        import random
+
+        self.rng = random.Random(seed)
+        self.first_failure_rate = first_failure_rate
+        self.retry_failure_rate = retry_failure_rate
+        self.charges = 0
+        self._lock = threading.Lock()
+
+    def charge(self, amount_cents: int, idempotency_key: str, metadata: dict | None = None):
+        with self._lock:
+            self.charges += 1
+            try:
+                attempt = int(idempotency_key.rsplit(":", 1)[-1])
+            except (ValueError, IndexError):
+                attempt = 1
+            rate = self.first_failure_rate if attempt <= 1 else self.retry_failure_rate
+            failed = self.rng.random() < rate
+            code = self.rng.choice(["card_declined", "insufficient_funds", "network_error"])
+        if failed:
+            return GatewayResult(
+                ref=f"sim_fail_{uuid.uuid4().hex[:20]}",
+                status="FAILED",
+                failure_code=code,
+            )
+        return GatewayResult(ref=f"sim_{uuid.uuid4().hex[:24]}", status="SUCCEEDED")
+
+
 class StripeGateway(PaymentGateway):
     """Stripe PaymentIntent adapter.  Test mode only by design."""
 

@@ -57,7 +57,7 @@ class Member(models.Model):
 
 class SpendingLimitQuerySet(models.QuerySet):
     def latest_first(self):
-        return self.order_by("-effective_at", "-id")
+        return self.order_by("-id")
 
 
 class SpendingLimit(models.Model):

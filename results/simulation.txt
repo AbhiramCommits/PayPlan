@@ -1,0 +1,22 @@
+PayPlan portfolio simulation
+============================
+Config:            500 members / 120 days / seed 42
+Window:            2026-07-23 .. 2026-11-19
+Runtime:           58.93s
+
+Metric                          Value
+---------------------------------------------------------
+Plans created                   669
+Orders declined for limit       0
+Installments billed             2,231
+Total billed                    $262,096.43
+Total collected                 $257,769.04
+On-time payment rate            91.16%
+Delinquency rate                1.64%
+Dunning recovery rate           60.44%
+Retry attempts                  321
+Average limit change            $90.83 (+1.63%)
+Gateway attempts                2,534
+
+Command: python backend/manage.py simulate_portfolio --members 500 --days 120 --seed 42
+Per-day rollups: results/rollups.csv

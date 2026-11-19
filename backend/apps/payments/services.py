@@ -146,7 +146,7 @@ def mark_payment_failed(payment_id: int, failure_code: str):
 def _enqueue_dunning(payment_id: int):
     """Hand the failure to Celery without making the API response depend on it."""
     try:
-        from apps.payments.tasks import retry_failed_payment
+        from apps.payments.tasks import retry_failed_payment_task as retry_failed_payment
 
         retry_failed_payment.delay(payment_id)
     except Exception:  # pragma: no cover - broker down / task not wired yet
@@ -161,6 +161,7 @@ def process_payment(
     amount_cents: int | None = None,
     gateway: PaymentGateway | None = None,
     now=None,
+    enqueue_dunning: bool = True,
 ) -> tuple[PaymentOutcome, int]:
     """Create at most one charge per idempotency key.
 
@@ -232,7 +233,8 @@ def process_payment(
                 payment.save(update_fields=["status", "failure_code", "updated_at"])
                 locked.status = InstallmentStatus.FAILED
                 locked.save(update_fields=["status"])
-                transaction.on_commit(lambda: _enqueue_dunning(payment.id))
+                if enqueue_dunning:
+                    transaction.on_commit(lambda: _enqueue_dunning(payment.id))
                 return PaymentOutcome(payment, replayed=False), 502
 
             if result.succeeded:
@@ -250,7 +252,8 @@ def process_payment(
             payment.save(update_fields=["status", "failure_code", "gateway_ref", "updated_at"])
             locked.status = InstallmentStatus.FAILED
             locked.save(update_fields=["status"])
-            transaction.on_commit(lambda: _enqueue_dunning(payment.id))
+            if enqueue_dunning:
+                transaction.on_commit(lambda: _enqueue_dunning(payment.id))
             return PaymentOutcome(payment, replayed=False), 402
     except IntegrityError as exc:
         # Uniqueness constraint won the race; replay the committed row.

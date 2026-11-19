@@ -99,7 +99,7 @@ def generate_schedule(principal_cents: int, n: int, cadence: str, start_date: da
 
 def initial_limit(member, *, available_cents=None, reason=LimitReason.INITIAL):
     """Return the latest limit row, creating an INITIAL row when none exists."""
-    latest = member.spending_limits.order_by("-effective_at", "-id").first()
+    latest = member.spending_limits.order_by("-id").first()
     if latest:
         return latest
     available = member.base_limit_cents if available_cents is None else available_cents
@@ -112,7 +112,7 @@ def initial_limit(member, *, available_cents=None, reason=LimitReason.INITIAL):
 
 
 def current_limit_cents(member) -> int:
-    latest = member.spending_limits.order_by("-effective_at", "-id").first()
+    latest = member.spending_limits.order_by("-id").first()
     return latest.limit_cents if latest else member.base_limit_cents
 
 
@@ -235,7 +235,7 @@ def recalculate_limit(member, as_of: date | None = None) -> SpendingLimit:
     type(member).objects.select_for_update().get(pk=member.pk)
     member.refresh_from_db(fields=["base_limit_cents"])
     new_limit, reason, _streak = calculate_limit(member, as_of)
-    previous = member.spending_limits.order_by("-effective_at", "-id").first()
+    previous = member.spending_limits.order_by("-id").first()
     available = max(new_limit - outstanding_cents(member), 0)
     if previous is None or previous.limit_cents != new_limit:
         return SpendingLimit.objects.create(

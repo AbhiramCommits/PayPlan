@@ -63,3 +63,34 @@ class WebhookEvent(models.Model):
 
     def __str__(self):
         return f"Webhook {self.provider_event_id} ({self.type})"
+
+
+class Notification(models.Model):
+    """A reminder/dunning notification placeholder (no outbound email)."""
+
+    CHANNEL_EMAIL = "EMAIL"
+    CHANNEL_SMS = "SMS"
+    CHANNEL_CHOICES = [(CHANNEL_EMAIL, "Email"), (CHANNEL_SMS, "SMS")]
+
+    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name="notifications")
+    installment = models.ForeignKey(
+        Installment,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+        null=True,
+        blank=True,
+    )
+    channel = models.CharField(max_length=16, choices=CHANNEL_CHOICES, default=CHANNEL_EMAIL)
+    template = models.CharField(max_length=64)
+    sent_at = models.DateTimeField(default=timezone.now)
+    dedupe_key = models.CharField(max_length=128, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-sent_at", "-id"]
+        indexes = [
+            models.Index(fields=["member", "template"], name="notification_member_tpl_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.template} -> {self.member_id}"
