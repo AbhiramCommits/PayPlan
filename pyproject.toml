@@ -28,10 +28,10 @@ filterwarnings = ["ignore::DeprecationWarning"]
 [tool.coverage.run]
 source = ["apps"]
 branch = true
-omit = ["*/migrations/*", "*/apps/*/apps.py"]
+omit = ["*/migrations/*", "*/apps/*/apps.py", "*/tests/*", "*/test_*.py"]
 
 [tool.coverage.report]
-fail_under = 85
+fail_under = 91.0
 show_missing = true
 skip_covered = false
 exclude_lines = [

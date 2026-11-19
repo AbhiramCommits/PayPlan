@@ -61,3 +61,8 @@ def test_ten_parallel_requests_with_same_key_charge_once(member, monkeypatch):
     installment.refresh_from_db()
     assert installment.status == InstallmentStatus.PAID
     assert installment.amount_paid_cents == installment.amount_cents
+    print(
+        f"PROOF: {len(results)} concurrent duplicate requests -> "
+        f"{Payment.objects.filter(idempotency_key='parallel-key').count()} Payment row, "
+        f"{gateway.charge_count} gateway charge"
+    )
