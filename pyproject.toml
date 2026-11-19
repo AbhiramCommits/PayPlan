@@ -10,7 +10,7 @@ ignore = ["B008"]
 per-file-ignores = { "backend/payplan/settings/*.py" = ["F403", "F405"] }
 
 [tool.ruff.lint.isort]
-known-first-party = ["apps", "payplan"]
+known-first-party = ["apps", "payplan", "tests"]
 
 [tool.black]
 line-length = 100
