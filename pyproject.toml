@@ -1,0 +1,42 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["**/migrations/*", "frontend", ".venv", "staticfiles"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "DJ"]
+ignore = ["B008"]
+# Django's settings module intentionally uses star imports.
+per-file-ignores = { "backend/payplan/settings/*.py" = ["F403", "F405"] }
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "payplan"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+extend-exclude = '/(migrations|\.venv|staticfiles)/'
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "payplan.settings.test"
+pythonpath = ["backend"]
+testpaths = ["backend"]
+addopts = "-ra --strict-markers --disable-warnings"
+python_files = ["test_*.py"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+source = ["apps"]
+branch = true
+omit = ["*/migrations/*", "*/apps/*/apps.py"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __str__",
+    "if __name__ == .__main__.",
+    "raise NotImplementedError",
+]

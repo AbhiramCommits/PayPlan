@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+test.sqlite3
+staticfiles/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+media/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/coverage/
+npm-debug.log*
+.vite/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
