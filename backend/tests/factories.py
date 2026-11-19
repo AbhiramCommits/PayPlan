@@ -10,6 +10,7 @@ from factory.django import DjangoModelFactory
 
 from apps.accounts.models import LimitReason, Member, MemberStatus, RiskTier, SpendingLimit
 from apps.catalog.models import Product
+from apps.payments.models import Payment, PaymentStatus, WebhookEvent
 from apps.plans.models import (
     Cadence,
     Installment,
@@ -117,3 +118,26 @@ class InstallmentFactory(DjangoModelFactory):
     amount_cents = 10_000
     amount_paid_cents = 0
     status = InstallmentStatus.SCHEDULED
+
+
+class PaymentFactory(DjangoModelFactory):
+    class Meta:
+        model = Payment
+
+    member = factory.LazyAttribute(lambda o: o.installment.plan.member)
+    installment = factory.SubFactory(InstallmentFactory)
+    amount_cents = factory.LazyAttribute(lambda o: o.installment.amount_cents)
+    status = PaymentStatus.PENDING
+    gateway_ref = factory.Sequence(lambda n: f"fake_test_{n}")
+    idempotency_key = factory.Sequence(lambda n: f"test-key-{n}")
+    request_fingerprint = "0" * 64
+    attempt_no = 1
+
+
+class WebhookEventFactory(DjangoModelFactory):
+    class Meta:
+        model = WebhookEvent
+
+    provider_event_id = factory.Sequence(lambda n: f"evt_test_{n}")
+    type = "payment_intent.succeeded"
+    payload = factory.LazyFunction(dict)
