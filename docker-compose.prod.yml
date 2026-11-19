@@ -1,0 +1,63 @@
+# Production-shaped compose file.  Postgres and Redis are external managed
+# services on AWS (RDS + ElastiCache); inject their URLs through the environment.
+#
+#   export API_IMAGE=123456789012.dkr.ecr.us-east-1.amazonaws.com/payplan-api:latest
+#   export WEB_IMAGE=123456789012.dkr.ecr.us-east-1.amazonaws.com/payplan-web:latest
+#   docker compose -f docker-compose.prod.yml up -d
+
+x-backend-env: &backend-env
+  DJANGO_SETTINGS_MODULE: payplan.settings.prod
+  DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?set DJANGO_SECRET_KEY}
+  ALLOWED_HOSTS: ${ALLOWED_HOSTS:?set ALLOWED_HOSTS}
+  DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+  REDIS_URL: ${REDIS_URL:?set REDIS_URL}
+  CELERY_BROKER_URL: ${CELERY_BROKER_URL:-${REDIS_URL}}
+  CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-${REDIS_URL}}
+  PAYMENT_GATEWAY: ${PAYMENT_GATEWAY:-stripe}
+  STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+  STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+  SECURE_SSL_REDIRECT: ${SECURE_SSL_REDIRECT:-false}
+
+services:
+  api:
+    image: ${API_IMAGE:?set API_IMAGE}
+    environment:
+      <<: *backend-env
+      RUN_MIGRATIONS: "1"
+      COLLECT_STATIC: "1"
+      SEED_DEMO: "0"
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    image: ${API_IMAGE:?set API_IMAGE}
+    environment: *backend-env
+    command: celery -A payplan worker -l info --concurrency=4
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+
+  beat:
+    image: ${API_IMAGE:?set API_IMAGE}
+    environment: *backend-env
+    command: celery -A payplan beat -l info
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+
+  web:
+    image: ${WEB_IMAGE:?set WEB_IMAGE}
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
